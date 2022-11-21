@@ -1,9 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"time"
 )
 
 /**
@@ -14,10 +14,10 @@ import (
 **/
 
 const (
-	ADDRESS   = "tcp://127.0.0.1:1883"
-	USER_NAME = ""
-	PASSWORD  = ""
-	TOPIC     = "test"
+	ADDRESS   = "tcp://192.168.78.141:1883"
+	USER_NAME = "admin"
+	PASSWORD  = "public"
+	TOPIC     = "connect-custom"
 )
 
 var (
@@ -43,9 +43,9 @@ func initMqtt() {
 	// 添加代理
 	opts.AddBroker(ADDRESS)
 	// 设置用户名
-	//opts.SetUsername(USER_NAME)
-	//// 设置密码
-	//opts.SetPassword(PASSWORD)
+	opts.SetUsername(USER_NAME)
+	// 设置密码
+	opts.SetPassword(PASSWORD)
 	// 使用连接信息进行连接
 	MqttClient = mqtt.NewClient(opts)
 	if token := MqttClient.Connect(); token.Wait() && token.Error() != nil {
@@ -53,12 +53,33 @@ func initMqtt() {
 		panic(token.Error())
 	}
 
-	go func() {
-		for i := 0; i < 100000; i++ {
-			publish(fmt.Sprintf("msg test %d", i))
-			time.Sleep(time.Second * 1)
+	fmt.Println("开始推送")
+
+	//for true {
+	//	subscribe()
+	//}
+
+	type student struct {
+		ID int `json:"id"`
+	}
+
+	for i := 0; i < 10; i++ {
+		s := student{
+			ID: i,
 		}
-	}()
+		sb, _ := json.Marshal(s)
+		publish(string(sb))
+	}
+
+	//go func() {
+	//	for i := 0; i < 10; i++ {
+	//		s := student{
+	//			ID: i,
+	//		}
+	//		sb, _ := json.Marshal(s)
+	//		publish(string(sb))
+	//	}
+	//}()
 
 	select {}
 }
@@ -70,6 +91,7 @@ func initMqtt() {
  */
 func publish(msg string) {
 	MqttClient.Publish(TOPIC, QoS2, true, msg)
+	fmt.Println("push success")
 }
 
 // subscribe
@@ -88,5 +110,5 @@ func subscribe() {
  */
 
 func subCallBackFunc(client mqtt.Client, msg mqtt.Message) {
-	fmt.Printf("订阅: 当前话题是 [%s]; 信息是 [%s] \n", msg.Topic(), string(msg.Payload()))
+	fmt.Printf("订阅: 当前话题是 [%s]; 信息是 [%s] \n", msg.Topic(), msg)
 }
